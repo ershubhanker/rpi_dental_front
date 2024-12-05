@@ -1,7 +1,34 @@
+
 import React, { useState, useEffect } from "react";
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
+import Typography from '@mui/material/Typography';
+import Modal from '@mui/material/Modal';
 import Scheduler from '../Scheduler';
 
-const Selectpatient = () => {
+
+const style = {
+  position: 'fixed',
+  top: '50%',
+  left: '50%',
+  transform: 'translate(-50%, -50%)',
+  width: 600,
+  height:400,
+  bgcolor: 'background.paper',
+  border: '2px solid #000',
+  boxShadow: 24,
+  p: 4,
+  zIndex: 1000,
+  overflow: 'scroll',
+};
+
+
+const BasicModal=(props) => {
+
+  
+  
+  const { sendDataToprops,open,handleClose } = props;
+  console.log("props data",sendDataToprops);
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchParams, setSearchParams] = useState({
@@ -10,7 +37,11 @@ const Selectpatient = () => {
     age: "",
   });
   const [selectedPatients, setSelectedPatients] = useState([]);
-  
+  // const [open, setOpen] = React.useState(false);
+  // const handleOpen = () => setOpen(true);
+  // const handleClose = () => setOpen(false);
+
+
   useEffect(() => {
     // Fetch all patients from the API
     fetch("http://127.0.0.1:8000/api/patients/")
@@ -77,9 +108,19 @@ const Selectpatient = () => {
 
   return (
     <div>
-      <h1>Patients List</h1>
+      {/* <Button onClick={handleOpen}>Open modal</Button> */}
+      <Modal
+        open={open}
+        onClose={handleClose}
+        aria-labelledby="modal-modal-title"
+        aria-describedby="modal-modal-description"
+      >
+        <Box sx={style}>
+          <Typography id="modal-modal-title" variant="h6" component="h2">
+            Select Patient
+          </Typography>
 
-      <form onSubmit={handleSearch}>
+          <form onSubmit={handleSearch}>
         <div>
           <label>
             First Name:
@@ -115,7 +156,6 @@ const Selectpatient = () => {
         </div>
         <button type="submit">Search</button>
       </form>
-
       <table
         border="1"
         style={{
@@ -154,25 +194,14 @@ const Selectpatient = () => {
           ))}
         </tbody>
       </table>
-      {/* <Scheduler selectedPatients={selectedPatients} /> */}
-      {selectedPatients.length > 0 && (
-        <button
-          
-          style={{
-            marginTop: "20px",
-            padding: "10px 15px",
-            backgroundColor: "#007BFF",
-            color: "#fff",
-            border: "none",
-            borderRadius: "4px",
-            cursor: "pointer",
-          }}
-        >
-          Select Patients
-        </button>
-      )}
+      
+        </Box>
+        
+      </Modal>
+     
     </div>
+    
   );
-};
+}
 
-export default Selectpatient;
+export default BasicModal;

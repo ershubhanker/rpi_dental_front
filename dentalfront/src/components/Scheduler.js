@@ -1,10 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
+// import Selectpatient from '../components/pages/Selectpatient';
+import BasicModal from '../components/pages/BasicModal';
 
-const Scheduler = () => {
+const Scheduler = (props) => {
+
+    useEffect(() => {
+        console.log("Selected Patients in Scheduler:", props);
+        // Perform any additional logic with the selected patient IDs
+      }, [props]); // Re-run whenever `value` changes
+
     const [events, setEvents] = useState([
         {
             id: '1',
@@ -32,8 +40,14 @@ const Scheduler = () => {
     const [isEditing, setIsEditing] = useState(false);
     const [currentEvent, setCurrentEvent] = useState(null);
     const [selectedDoctor, setSelectedDoctor] = useState('All');
-
+    
     const doctors = ['All', 'Dr. Smith', 'Dr. Adams', 'Dr. Johnson'];
+
+
+    const [isModalOpen, setIsModalOpen] = useState(false);
+
+    const handleOpen = () => setIsModalOpen(true);
+    const handleClose = () => setIsModalOpen(false);
 
     // Filter events based on selected doctor
     const filteredEvents =
@@ -75,42 +89,58 @@ const Scheduler = () => {
             )
         );
         setIsEditing(false);
+        setIsModalOpen(false);
         setCurrentEvent(null);
     };
 
     // Close the edit form
     const cancelEdit = () => {
         setIsEditing(false);
+        setIsModalOpen(false);
         setCurrentEvent(null);
     };
 
+    // Delete the selected event
+    const deleteEvent = (eventId) => {
+        const confirmDelete = window.confirm('Are you sure you want to delete this appointment?');
+        if (confirmDelete) {
+            setEvents((prevEvents) => prevEvents.filter((event) => event.id !== eventId));
+            setIsEditing(false);
+            setCurrentEvent(null);
+        }
+    };
+
+    
     // Add a new event when a date range is selected
     const handleDateSelect = (selectInfo) => {
         const { startStr, endStr } = selectInfo;
-
+        console.log("select info",startStr);
         const selectedStart = new Date(startStr);
         const currentTime = new Date();
 
-        if (selectedStart < currentTime) {
+        if (selectedStart < currentTime && selectedStart != currentTime) {
             alert('You cannot create Appointment in the past.');
             selectInfo.view.calendar.unselect();
             return;
         }
+        // if (typeof handleOpen === "function") {
+        //     handleOpen();  // Calling the function passed from the parent
+        //   }
+         handleOpen()
+        // const title = prompt('Enter a title for the new Appointment:');
+        // if (title && selectedDoctor !== 'All') {
+        //     const newEvent = {
+        //         id: String(events.length + 1),
+        //         title,
+        //         doctor: selectedDoctor,
+        //         start: startStr,
+        //         end: endStr,
+        //     };
 
-        const title = prompt('Enter a title for the new Appointment:');
-        if (title && selectedDoctor !== 'All') {
-            const newEvent = {
-                id: String(events.length + 1),
-                title,
-                doctor: selectedDoctor,
-                start: startStr,
-                end: endStr,
-            };
-
-            setEvents((prevEvents) => [...prevEvents, newEvent]);
-        } else if (selectedDoctor === 'All') {
-            alert('Please select a doctor to add an Appointment.');
-        }
+        //     setEvents((prevEvents) => [...prevEvents, newEvent]);
+        // } else if (selectedDoctor === 'All') {
+        //     alert('Please select a doctor to add an Appointment.');
+        // }
 
         selectInfo.view.calendar.unselect();
     };
@@ -132,6 +162,7 @@ const Scheduler = () => {
                     ))}
                 </select>
             </label>
+            
             <FullCalendar
                 plugins={[timeGridPlugin, dayGridPlugin, interactionPlugin]}
                 initialView="timeGridWeek"
@@ -141,11 +172,12 @@ const Scheduler = () => {
                     right: 'timeGridDay,timeGridWeek,dayGridMonth',
                 }}
                 editable={true}
-                selectable={true}
+                selectable={!isModalOpen && !isEditing}
                 events={filteredEvents} // Show filtered events
                 eventClick={handleEventClick}
                 select={handleDateSelect}
             />
+        <BasicModal open={isModalOpen} handleClose={handleClose} />
 
             {isEditing && (
                 <div style={modalStyle}>
@@ -197,6 +229,12 @@ const Scheduler = () => {
                         <button onClick={saveEventChanges}>Save</button>
                         <button onClick={cancelEdit} style={{ marginLeft: '10px' }}>
                             Cancel
+                        </button>
+                        <button
+                            onClick={() => deleteEvent(currentEvent.id)}
+                            style={{ marginLeft: '10px', backgroundColor: 'red', color: 'white' }}
+                        >
+                            Delete
                         </button>
                     </div>
                 </div>
