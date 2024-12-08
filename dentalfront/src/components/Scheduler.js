@@ -8,11 +8,7 @@ import BasicModal from '../components/pages/BasicModal';
 
 const Scheduler = (props) => {
 
-    useEffect(() => {
-        console.log("Selected Patients in Scheduler:", props);
-        // Perform any additional logic with the selected patient IDs
-      }, [props]); // Re-run whenever `value` changes
-
+    const [meetingCreated, setmeetingCreated] = useState([null])
     const [events, setEvents] = useState([
         {
             id: '1',
@@ -20,6 +16,7 @@ const Scheduler = (props) => {
             doctor: 'Dr. Smith',
             start: new Date().toISOString().split('T')[0] + 'T10:00:00',
             end: new Date().toISOString().split('T')[0] + 'T11:00:00',
+            patient:"",
         },
         {
             id: '2',
@@ -27,6 +24,7 @@ const Scheduler = (props) => {
             doctor: 'Dr. Adams',
             start: new Date().toISOString().split('T')[0] + 'T13:00:00',
             end: new Date().toISOString().split('T')[0] + 'T14:30:00',
+            patient:"",
         },
         {
             id: '3',
@@ -34,13 +32,16 @@ const Scheduler = (props) => {
             doctor: 'Dr. Smith',
             start: new Date().toISOString().split('T')[0] + 'T15:00:00',
             end: new Date().toISOString().split('T')[0] + 'T16:00:00',
+            patient:"",
         },
     ]);
 
     const [isEditing, setIsEditing] = useState(false);
     const [currentEvent, setCurrentEvent] = useState(null);
     const [selectedDoctor, setSelectedDoctor] = useState('All');
-    
+    const [selectedPatient, setSelectedPatient] = useState(null);
+    const [eventTitle, seteventTitle] = useState(null);
+    const [selectedDateRange, setSelectedDateRange] = useState(null);
     const doctors = ['All', 'Dr. Smith', 'Dr. Adams', 'Dr. Johnson'];
 
 
@@ -55,6 +56,15 @@ const Scheduler = (props) => {
             ? events
             : events.filter((event) => event.doctor === selectedDoctor);
 
+    // Callback to receive selected patient from BasicModal
+    const handlePatientSelect = (patient) => {
+
+        setSelectedPatient(patient);
+        console.log("selected handlePatientSelect in scheduler",patient);
+        setIsModalOpen(false); // Close the modal after selection
+        
+    };
+
     // Open edit form
     const handleEventClick = (clickInfo) => {
         setCurrentEvent({
@@ -63,6 +73,7 @@ const Scheduler = (props) => {
             doctor: clickInfo.event.extendedProps.doctor,
             start: clickInfo.event.startStr,
             end: clickInfo.event.endStr,
+            
         });
         setIsEditing(true);
     };
@@ -80,10 +91,12 @@ const Scheduler = (props) => {
                 event.id === currentEvent.id
                     ? {
                           ...event,
+                          
                           title: currentEvent.title,
                           doctor: currentEvent.doctor,
                           start: currentEvent.start,
                           end: currentEvent.end,
+                          
                       }
                     : event
             )
@@ -110,9 +123,63 @@ const Scheduler = (props) => {
         }
     };
 
+    useEffect(() => {
+
+        //Runs on the first render
+        //And any time any dependency value changes
+        console.log("selected pateint before event created in scheduler:",selectedPatient);
+        if ( selectedPatient && eventTitle && selectedDateRange) {
+            const { startStr, endStr } = selectedDateRange;
+            const newEvent = {
+                patient_details: selectedPatient.patient_id,
+                doctor_name: selectedDoctor,
+                title: eventTitle,
+                start_datetime: startStr,
+                end_datetime: endStr,
+            };
     
+            // Add event to the local calendar
+            setEvents((prevEvents) => [...prevEvents, newEvent]);
+    
+            // Send event to the API
+            (async () => {
+                try {
+                    const response = await fetch("http://127.0.0.1:8000/api/create-meeting/", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify(newEvent),
+                    });
+    
+                    if (response.ok) {
+                        const data = await response.json();
+                        alert("Meeting created successfully!");
+                        console.log("Response:", data);
+                    } else {
+                        const errorData = await response.json();
+                        console.error("Error:", errorData);
+                        alert("Failed to create the meeting!");
+                    }
+                } catch (error) {
+                    console.error("Error:", error);
+                    alert("An error occurred while creating the meeting!");
+                }
+            })();
+    
+            // Reset temporary states
+            setSelectedDateRange(null);
+            setSelectedPatient(null);
+            seteventTitle(null);
+            // setNewEventReady(false);
+        }
+
+      }, [eventTitle, selectedPatient]);
+
+
+
     // Add a new event when a date range is selected
-    const handleDateSelect = (selectInfo) => {
+    const handleDateSelect = async(selectInfo) => {
         const { startStr, endStr } = selectInfo;
         console.log("select info",startStr);
         const selectedStart = new Date(startStr);
@@ -123,27 +190,59 @@ const Scheduler = (props) => {
             selectInfo.view.calendar.unselect();
             return;
         }
-        // if (typeof handleOpen === "function") {
-        //     handleOpen();  // Calling the function passed from the parent
-        //   }
-         handleOpen()
-        // const title = prompt('Enter a title for the new Appointment:');
-        // if (title && selectedDoctor !== 'All') {
-        //     const newEvent = {
-        //         id: String(events.length + 1),
-        //         title,
-        //         doctor: selectedDoctor,
-        //         start: startStr,
-        //         end: endStr,
-        //     };
+        setSelectedDateRange({ startStr, endStr })
+        handleOpen();
+        // console.log("selected pateint before event created in scheduler:",selectedPatient);
+        const title = prompt('Enter a title for the new Appointment:');
+        seteventTitle(title);
+        if (eventTitle && selectedDoctor !== 'All' && selectedPatient !== null) {
+            setSelectedDateRange({ startStr, endStr })
+            // const newEvent = {
+            //     patient_details: selectedPatient.patient_id,
+            //     doctor_name: selectedDoctor,
+            //     title:eventTitle,
+            //     start_datetime: startStr,
+            //     end_datetime: endStr,
+                
+            // };
+            // meetingCreated, setmeetingCreated
+            // console.log("event created",newEvent);
+            // setEvents((prevEvents) => [...prevEvents, newEvent]);
+            // setSelectedPatient(null)
+           
+            // console.log("event created before API",meetingCreated)
 
-        //     setEvents((prevEvents) => [...prevEvents, newEvent]);
-        // } else if (selectedDoctor === 'All') {
-        //     alert('Please select a doctor to add an Appointment.');
-        // }
+            // try {
+            //     const response = await fetch("http://127.0.0.1:8000/api/create-meeting/", {
+            //       method: "POST",
+            //       headers: {
+            //         "Content-Type": "application/json",
+            //       },
+            //       body: JSON.stringify(newEvent),
+            //     });
+                
+            //     if (response.ok) {
+            //       const data = await response.json();
+            //       alert("Meeting created successfully!");
+            //       console.log("Response:", data);
+            //     } else {
+            //       const errorData = await response.json();
+            //       console.error("Error:", errorData);
+            //       alert("Failed to create the meeting!");
+            //     }
+            //   } catch (error) {
+            //     console.error("Error:", error);
+            //     alert("An error occurred while creating the meeting!");
+            //   }
+        }
+         else if (selectedDoctor === 'All') {
+            alert('Please select a doctor to add an Appointment.');
+        }
 
         selectInfo.view.calendar.unselect();
     };
+
+
 
     return (
         <div style={{ maxWidth: '900px', margin: '0 auto' }}>
@@ -177,7 +276,7 @@ const Scheduler = (props) => {
                 eventClick={handleEventClick}
                 select={handleDateSelect}
             />
-        <BasicModal open={isModalOpen} handleClose={handleClose} />
+        <BasicModal open={isModalOpen} handleClose={handleClose} onPatientSelect={handlePatientSelect}/>
 
             {isEditing && (
                 <div style={modalStyle}>

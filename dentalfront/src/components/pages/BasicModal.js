@@ -25,22 +25,34 @@ const style = {
 
 const BasicModal=(props) => {
 
-  
-  
-  const { sendDataToprops,open,handleClose } = props;
+  const { sendDataToprops,open,handleClose,onPatientSelect  } = props;
   console.log("props data",sendDataToprops);
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedPatient, setSelectedPatient] = useState(null);
   const [searchParams, setSearchParams] = useState({
     first_name: "",
     last_name: "",
     age: "",
   });
+  
   const [selectedPatients, setSelectedPatients] = useState([]);
   // const [open, setOpen] = React.useState(false);
   // const handleOpen = () => setOpen(true);
   // const handleClose = () => setOpen(false);
 
+  const handlePatientClick = (patient) => {
+    setSelectedPatient(patient);
+    onPatientSelect(patient); // Pass selected patient to parent
+    setSelectedPatient(null);
+};
+
+useEffect(() => {
+  // Reset selected patients when modal is opened
+  if (open) {
+    setSelectedPatients([]);
+  }
+}, [open]);
 
   useEffect(() => {
     // Fetch all patients from the API
@@ -103,7 +115,7 @@ const BasicModal=(props) => {
         ? prevSelected.filter((id) => id !== patientId) // Deselect
         : [...prevSelected, patientId] // Select
     );
-    console.log('selected patient',patientId);
+    console.log('selected patient in basicmodal',patientId);
   };
 
   return (
@@ -190,7 +202,9 @@ const BasicModal=(props) => {
               <td>{patient.last_name}</td>
               <td>{patient.age}</td>
               <td>{patient.address}</td>
+              <td><button onClick={() => handlePatientClick(patient)}>Select</button></td>
             </tr>
+            
           ))}
         </tbody>
       </table>
