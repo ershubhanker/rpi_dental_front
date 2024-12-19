@@ -9,32 +9,34 @@ import BasicModal from '../components/pages/BasicModal';
 const Scheduler = (props) => {
 
     const [meetingCreated, setmeetingCreated] = useState([null])
-    const [events, setEvents] = useState([
-        {
-            id: '1',
-            title: 'Consultation',
-            doctor: 'Dr. Smith',
-            start: new Date().toISOString().split('T')[0] + 'T10:00:00',
-            end: new Date().toISOString().split('T')[0] + 'T11:00:00',
-            patient:"",
-        },
-        {
-            id: '2',
-            title: 'Surgery',
-            doctor: 'Dr. Adams',
-            start: new Date().toISOString().split('T')[0] + 'T13:00:00',
-            end: new Date().toISOString().split('T')[0] + 'T14:30:00',
-            patient:"",
-        },
-        {
-            id: '3',
-            title: 'Follow-up',
-            doctor: 'Dr. Smith',
-            start: new Date().toISOString().split('T')[0] + 'T15:00:00',
-            end: new Date().toISOString().split('T')[0] + 'T16:00:00',
-            patient:"",
-        },
-    ]);
+    // const [events, setEvents] = useState([
+    //     {
+    //         id: '1',
+    //         title: 'Consultation',
+    //         doctor: 'Dr. Smith',
+    //         start: new Date().toISOString().split('T')[0] + 'T10:00:00',
+    //         end: new Date().toISOString().split('T')[0] + 'T11:00:00',
+    //         patient:"",
+    //     },
+    //     {
+    //         id: '2',
+    //         title: 'Surgery',
+    //         doctor: 'Dr. Adams',
+    //         start: new Date().toISOString().split('T')[0] + 'T13:00:00',
+    //         end: new Date().toISOString().split('T')[0] + 'T14:30:00',
+    //         patient:"",
+    //     },
+    //     {
+    //         id: '3',
+    //         title: 'Follow-up',
+    //         doctor: 'Dr. Smith',
+    //         start: new Date().toISOString().split('T')[0] + 'T15:00:00',
+    //         end: new Date().toISOString().split('T')[0] + 'T16:00:00',
+    //         patient:"",
+    //     },
+    // ]);
+
+    const [events, setEvents] = useState([]); // Start with an empty array
 
     const [isEditing, setIsEditing] = useState(false);
     const [currentEvent, setCurrentEvent] = useState(null);
@@ -67,6 +69,7 @@ const Scheduler = (props) => {
 
     // Open edit form
     const handleEventClick = (clickInfo) => {
+        console.log("selected appt:",clickInfo.event.id)
         setCurrentEvent({
             id: clickInfo.event.id,
             title: clickInfo.event.title,
@@ -81,8 +84,11 @@ const Scheduler = (props) => {
     // Handle form input changes
     const handleInputChange = (e) => {
         const { name, value } = e.target;
+        
         setCurrentEvent((prev) => ({ ...prev, [name]: value }));
     };
+
+
 
     // Save changes to the event
     const saveEventChanges = () => {
@@ -115,14 +121,53 @@ const Scheduler = (props) => {
 
     // Delete the selected event
     const deleteEvent = (eventId) => {
+        console.log("delete id:",eventId)
         const confirmDelete = window.confirm('Are you sure you want to delete this appointment?');
         if (confirmDelete) {
             setEvents((prevEvents) => prevEvents.filter((event) => event.id !== eventId));
+
+            // Delete the event in the API
+            fetch(`http://127.0.0.1:8000/api/edit_patient_appt/${eventId}`, {
+                method: 'DELETE',
+            })
+                .then((response) => {
+                    if (!response.ok) {
+                        throw new Error('Failed to delete event');
+                    }
+                    alert('Event deleted successfully');
+                })
+                .catch((error) => console.error('Error deleting event:', error));
+
             setIsEditing(false);
             setCurrentEvent(null);
         }
     };
 
+
+    // Fetch events from the API
+    useEffect(() => {
+        fetch('http://127.0.0.1:8000/api/patientappt/')
+            .then((response) => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then((data) => {
+                const formattedEvents = data.map((event) => ({
+                    id: event.id.toString(),
+                    title: event.title || 'No Title',
+                    doctor: event.doctor_name || 'Unknown Doctor',
+                    start: event.start_datetime,
+                    end: event.end_datetime,
+                    patient: event.patient_details || 'Unknown Patient',
+                }));
+                setEvents(formattedEvents);
+            })
+            .catch((error) => console.error('Error fetching events:', error));
+    }, []);
+
+    // send data to API to store in DB
     useEffect(() => {
 
         //Runs on the first render
@@ -197,43 +242,7 @@ const Scheduler = (props) => {
         seteventTitle(title);
         if (eventTitle && selectedDoctor !== 'All' && selectedPatient !== null) {
             setSelectedDateRange({ startStr, endStr })
-            // const newEvent = {
-            //     patient_details: selectedPatient.patient_id,
-            //     doctor_name: selectedDoctor,
-            //     title:eventTitle,
-            //     start_datetime: startStr,
-            //     end_datetime: endStr,
-                
-            // };
-            // meetingCreated, setmeetingCreated
-            // console.log("event created",newEvent);
-            // setEvents((prevEvents) => [...prevEvents, newEvent]);
-            // setSelectedPatient(null)
-           
-            // console.log("event created before API",meetingCreated)
-
-            // try {
-            //     const response = await fetch("http://127.0.0.1:8000/api/create-meeting/", {
-            //       method: "POST",
-            //       headers: {
-            //         "Content-Type": "application/json",
-            //       },
-            //       body: JSON.stringify(newEvent),
-            //     });
-                
-            //     if (response.ok) {
-            //       const data = await response.json();
-            //       alert("Meeting created successfully!");
-            //       console.log("Response:", data);
-            //     } else {
-            //       const errorData = await response.json();
-            //       console.error("Error:", errorData);
-            //       alert("Failed to create the meeting!");
-            //     }
-            //   } catch (error) {
-            //     console.error("Error:", error);
-            //     alert("An error occurred while creating the meeting!");
-            //   }
+            
         }
          else if (selectedDoctor === 'All') {
             alert('Please select a doctor to add an Appointment.');

@@ -8,7 +8,7 @@ const Header = () => {
             <Link to="/" style={{ margin: '0 10px', color: 'white', textDecoration: 'none' }}>Appointments</Link>
                 <Link to="/selectpatient" style={{ margin: '0 10px', color: 'white', textDecoration: 'none' }}>Select Patient</Link>
                 <Link to="/lists" style={{ margin: '0 10px', color: 'white', textDecoration: 'none' }}>Lists</Link>
-                <Link to="/makeappointment" style={{ margin: '0 10px', color: 'white', textDecoration: 'none' }}>Make Appointment</Link>
+                <Link to="/makeappointment" style={{ margin: '0 10px', color: 'white', textDecoration: 'none' }}>MH</Link>
                 <Link to="/patientappointment" style={{ margin: '0 10px', color: 'white', textDecoration: 'none' }}>Patient Appointment</Link>
             </nav>
         </header>
