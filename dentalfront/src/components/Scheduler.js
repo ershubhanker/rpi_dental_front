@@ -3,49 +3,31 @@ import FullCalendar from '@fullcalendar/react';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
+import resourceTimeGridPlugin from '@fullcalendar/resource-timegrid';
 // import Selectpatient from '../components/pages/Selectpatient';
 import BasicModal from '../components/pages/BasicModal';
 
-const Scheduler = (props) => {
+const Scheduler = () => {
 
     const [meetingCreated, setmeetingCreated] = useState([null])
-    // const [events, setEvents] = useState([
-    //     {
-    //         id: '1',
-    //         title: 'Consultation',
-    //         doctor: 'Dr. Smith',
-    //         start: new Date().toISOString().split('T')[0] + 'T10:00:00',
-    //         end: new Date().toISOString().split('T')[0] + 'T11:00:00',
-    //         patient:"",
-    //     },
-    //     {
-    //         id: '2',
-    //         title: 'Surgery',
-    //         doctor: 'Dr. Adams',
-    //         start: new Date().toISOString().split('T')[0] + 'T13:00:00',
-    //         end: new Date().toISOString().split('T')[0] + 'T14:30:00',
-    //         patient:"",
-    //     },
-    //     {
-    //         id: '3',
-    //         title: 'Follow-up',
-    //         doctor: 'Dr. Smith',
-    //         start: new Date().toISOString().split('T')[0] + 'T15:00:00',
-    //         end: new Date().toISOString().split('T')[0] + 'T16:00:00',
-    //         patient:"",
-    //     },
-    // ]);
 
     const [events, setEvents] = useState([]); // Start with an empty array
 
     const [isEditing, setIsEditing] = useState(false);
     const [currentEvent, setCurrentEvent] = useState(null);
-    const [selectedDoctor, setSelectedDoctor] = useState('All');
+    const [selectedDoctor, setSelectedDoctor] = useState('');
     const [selectedPatient, setSelectedPatient] = useState(null);
     const [eventTitle, seteventTitle] = useState(null);
     const [selectedDateRange, setSelectedDateRange] = useState(null);
     const doctors = ['All', 'Dr. Smith', 'Dr. Adams', 'Dr. Johnson'];
-
+   
+    const doctorslist = [
+        { id: 'dr_albert', title: 'Dr. Brian Albert' },
+        { id: 'dr_lexington', title: 'Dr. Sarah Lexington' },
+        { id: 'dr_overflow', title: 'Doctor Overflow' },
+        { id: 'tina', title: 'Tina' },
+        { id: 'bruce', title: 'Bruce' },
+    ];
 
     const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -53,23 +35,35 @@ const Scheduler = (props) => {
     const handleClose = () => setIsModalOpen(false);
 
     // Filter events based on selected doctor
-    const filteredEvents =
+    const filteredEvents = 
         selectedDoctor === 'All'
             ? events
-            : events.filter((event) => event.doctor === selectedDoctor);
+            : events.filter((event) => event.doctors === selectedDoctor);
+
 
     // Callback to receive selected patient from BasicModal
     const handlePatientSelect = (patient) => {
 
         setSelectedPatient(patient);
-        console.log("selected handlePatientSelect in scheduler",patient);
+        // console.log("selected handlePatientSelect in scheduler",patient);
         setIsModalOpen(false); // Close the modal after selection
         
     };
 
+const [selectedCodes, setselectedCodes] = useState(null);
+    // Callback to receive selected patient from BasicModal
+  const handleCodeSelect = (code) => {
+
+    setselectedCodes(code);
+    console.log("selected handleCodeSelect in scheduler",code);
+    // setIsModalOpen(false); // Close the modal after selection
+    
+};
+
     // Open edit form
     const handleEventClick = (clickInfo) => {
-        console.log("selected appt:",clickInfo.event.id)
+        console.log("handleEventClick in scheduler",clickInfo);
+        // console.log("selected appt:",clickInfo.event.id)
         setCurrentEvent({
             id: clickInfo.event.id,
             title: clickInfo.event.title,
@@ -89,29 +83,60 @@ const Scheduler = (props) => {
     };
 
 
-
-    // Save changes to the event
-    const saveEventChanges = () => {
-        setEvents((prevEvents) =>
-            prevEvents.map((event) =>
-                event.id === currentEvent.id
-                    ? {
-                          ...event,
-                          
-                          title: currentEvent.title,
-                          doctor: currentEvent.doctor,
-                          start: currentEvent.start,
-                          end: currentEvent.end,
-                          
-                      }
-                    : event
-            )
-        );
-        setIsEditing(false);
-        setIsModalOpen(false);
-        setCurrentEvent(null);
+    const saveEventChanges = async () => {
+        try {
+            // Create the updated event data
+            const updatedEvent = {
+                title: currentEvent.title,
+                doctor_name: currentEvent.doctor,
+                start_datetime: currentEvent.start,
+                end_datetime: currentEvent.end,
+                // patient_procedure_codes: currentEvent.patient_procedure_codes || [], // Include additional fields if necessary
+            };
+            console.log("currentEvent id", currentEvent.id);
+            // API call to update the event on the server
+            const response = await fetch(`http://127.0.0.1:8000/api/edit_meeting/${currentEvent.id}/`, {
+                method: "PUT", // Use PUT for full updates or PATCH for partial updates
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(updatedEvent),
+            });
+    
+            if (response.ok) {
+                const data = await response.json();
+                
+                // Update the local state with the updated event
+                setEvents((prevEvents) =>
+                    prevEvents.map((event) =>
+                        event.id === currentEvent.id
+                            ? {
+                                  ...event,
+                                  title: data.title,
+                                  doctor: data.doctor_name,
+                                  start: data.start_datetime,
+                                  end: data.end_datetime,
+                              }
+                            : event
+                    )
+                );
+                alert("Meeting updated successfully!");
+            } else {
+                const errorData = await response.json();
+                console.error("Error updating meeting:", errorData);
+                alert("Failed to update the meeting!");
+            }
+        } catch (error) {
+            console.error("Error during meeting update:", error);
+            alert("An error occurred while updating the meeting!");
+        } finally {
+            // Reset editing state
+            setIsEditing(false);
+            setIsModalOpen(false);
+            setCurrentEvent(null);
+        }
     };
-
+    
     // Close the edit form
     const cancelEdit = () => {
         setIsEditing(false);
@@ -121,7 +146,7 @@ const Scheduler = (props) => {
 
     // Delete the selected event
     const deleteEvent = (eventId) => {
-        console.log("delete id:",eventId)
+        // console.log("delete id:",eventId)
         const confirmDelete = window.confirm('Are you sure you want to delete this appointment?');
         if (confirmDelete) {
             setEvents((prevEvents) => prevEvents.filter((event) => event.id !== eventId));
@@ -154,31 +179,38 @@ const Scheduler = (props) => {
                 return response.json();
             })
             .then((data) => {
+               
                 const formattedEvents = data.map((event) => ({
                     id: event.id.toString(),
                     title: event.title || 'No Title',
-                    doctor: event.doctor_name || 'Unknown Doctor',
+                    resourceId: event.doctor_name || 'Unknown Doctor',
                     start: event.start_datetime,
                     end: event.end_datetime,
                     patient: event.patient_details || 'Unknown Patient',
                 }));
-                setEvents(formattedEvents);
+                // setEvents(formattedEvents);
+                setEvents((prevEvents) => [...prevEvents, ...formattedEvents])
+                setCurrentEvent(null);
             })
             .catch((error) => console.error('Error fetching events:', error));
+            // Reset temporary states
+        
     }, []);
 
-    // send data to API to store in DB
+
+    // send data to API to store in DB ()meeting is created in this useEffect function
     useEffect(() => {
 
         //Runs on the first render
         //And any time any dependency value changes
-        console.log("selected pateint before event created in scheduler:",selectedPatient);
+        // console.log("selected pateint before event created in scheduler:",selectedPatient);
         if ( selectedPatient && eventTitle && selectedDateRange) {
             const { startStr, endStr } = selectedDateRange;
             const newEvent = {
                 patient_details: selectedPatient.patient_id,
                 doctor_name: selectedDoctor,
                 title: eventTitle,
+                patient_procedure_codes:selectedCodes,
                 start_datetime: startStr,
                 end_datetime: endStr,
             };
@@ -200,14 +232,14 @@ const Scheduler = (props) => {
                     if (response.ok) {
                         const data = await response.json();
                         alert("Meeting created successfully!");
-                        console.log("Response:", data);
+                        // console.log("Response:", data);
                     } else {
                         const errorData = await response.json();
-                        console.error("Error:", errorData);
+                        // console.error("Error:", errorData);
                         alert("Failed to create the meeting!");
                     }
                 } catch (error) {
-                    console.error("Error:", error);
+                    // console.error("Error:", error);
                     alert("An error occurred while creating the meeting!");
                 }
             })();
@@ -225,11 +257,13 @@ const Scheduler = (props) => {
 
     // Add a new event when a date range is selected
     const handleDateSelect = async(selectInfo) => {
-        const { startStr, endStr } = selectInfo;
-        console.log("select info",startStr);
+        const { startStr, endStr, resource } = selectInfo;
+        // console.log("select info",startStr);
         const selectedStart = new Date(startStr);
         const currentTime = new Date();
-
+        const selectedDoctorName = resource.id;
+        // console.log("selected Doctor",selectedDoctorName);
+        setSelectedDoctor(selectedDoctorName)
         if (selectedStart < currentTime && selectedStart != currentTime) {
             alert('You cannot create Appointment in the past.');
             selectInfo.view.calendar.unselect();
@@ -240,13 +274,11 @@ const Scheduler = (props) => {
         // console.log("selected pateint before event created in scheduler:",selectedPatient);
         const title = prompt('Enter a title for the new Appointment:');
         seteventTitle(title);
-        if (eventTitle && selectedDoctor !== 'All' && selectedPatient !== null) {
+        if (eventTitle && selectedDoctor !== '' && selectedPatient !== null) {
             setSelectedDateRange({ startStr, endStr })
             
         }
-         else if (selectedDoctor === 'All') {
-            alert('Please select a doctor to add an Appointment.');
-        }
+        
 
         selectInfo.view.calendar.unselect();
     };
@@ -256,36 +288,23 @@ const Scheduler = (props) => {
     return (
         <div style={{ maxWidth: '900px', margin: '0 auto' }}>
             <h2>Doctor Scheduler</h2>
-            <label>
-                Select Doctor:
-                <select
-                    value={selectedDoctor}
-                    onChange={(e) => setSelectedDoctor(e.target.value)}
-                    style={{ marginLeft: '10px', marginBottom: '10px' }}
-                >
-                    {doctors.map((doctor, index) => (
-                        <option key={index} value={doctor}>
-                            {doctor}
-                        </option>
-                    ))}
-                </select>
-            </label>
             
             <FullCalendar
-                plugins={[timeGridPlugin, dayGridPlugin, interactionPlugin]}
-                initialView="timeGridWeek"
+                plugins={[timeGridPlugin, interactionPlugin, resourceTimeGridPlugin]}
+                initialView="resourceTimeGridDay"
                 headerToolbar={{
                     left: 'prev,next today',
                     center: 'title',
-                    right: 'timeGridDay,timeGridWeek,dayGridMonth',
+                    right: 'resourceTimeGridDay',
                 }}
                 editable={true}
                 selectable={!isModalOpen && !isEditing}
-                events={filteredEvents} // Show filtered events
+                events={events} // Show filtered events
+                resources={doctorslist} // Provide doctors as resources
                 eventClick={handleEventClick}
                 select={handleDateSelect}
             />
-        <BasicModal open={isModalOpen} handleClose={handleClose} onPatientSelect={handlePatientSelect}/>
+        <BasicModal open={isModalOpen} handleClose={handleClose} onPatientSelect={handlePatientSelect} selectedcode={handleCodeSelect}/>
 
             {isEditing && (
                 <div style={modalStyle}>
@@ -306,13 +325,11 @@ const Scheduler = (props) => {
                             value={currentEvent.doctor}
                             onChange={handleInputChange}
                         >
-                            {doctors
-                                .filter((doctor) => doctor !== 'All')
-                                .map((doctor, index) => (
-                                    <option key={index} value={doctor}>
-                                        {doctor}
-                                    </option>
-                                ))}
+                            {doctorslist.map((doctor) => (
+                            <option key={doctor.id} value={doctor.id}>
+                                {doctor.title}
+                            </option>
+                            ))}
                         </select>
                     </label>
                     <label>

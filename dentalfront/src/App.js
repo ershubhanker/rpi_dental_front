@@ -8,7 +8,7 @@ import Lists from './components/pages/Lists';
 import Makeappointment from './components/pages/Makeappointment';
 import Patientappointment from './components/pages/Patientappointment';
 import Selectpatient from './components/pages/Selectpatient';
-
+import LoginSignupPage from './components/LoginSignupPage';
 function App() {
   return (
     <Router>
@@ -21,6 +21,7 @@ function App() {
         <Route path="/lists" element={<Lists />} />
         <Route path="/makeappointment" element={<Makeappointment />} />
         <Route path="/patientappointment" element={<Patientappointment />} />
+        <Route path="/login" element={<LoginSignupPage />} />
     </Routes>
       </main>
      {/* <Scheduler /> */}

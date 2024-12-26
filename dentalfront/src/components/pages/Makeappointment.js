@@ -364,7 +364,6 @@ const Makeappointment = () => {
           {/* File Attachment Area end*/}
 
 
-
             {/* Insurance Carrier Start */}
             <div>
               <h2>Insurance Carrier</h2>
